@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard - AI Fitness Tracker</title>
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;background:#fff;margin:0}
+    .wrap{max-width:1100px;margin:40px auto;padding:24px}
+    header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+    .brand{font-size:1.4rem;font-weight:700;color:#2c7a3a}
+    .back-btn{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;background:#f0fbf5;color:#1d5b2b;text-decoration:none;border:1px solid #d9f0df}
+
+    h1{color:#13320f;margin-top:6px}
+    p{color:#2c7a3a}
+
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px}
+    @media (max-width: 860px){.grid{grid-template-columns:1fr}}
+
+    .card{background:#f6fff5;border:2px solid #e6f7ea;border-radius:12px;padding:16px}
+    .card h2{margin:0 0 8px;color:#13320f;font-size:1.2rem}
+    .note{color:#666;margin-top:8px}
+    .note a{color:#2c7a3a;text-decoration:none}
+
+    .big{font-size:2.2rem;font-weight:800;color:#13320f}
+    .big.big-cal{font-size:3.2rem;letter-spacing:0.5px}
+    .label{color:#2c7a3a;margin-top:4px}
+
+    .bmi-gauge{display:flex;gap:14px;align-items:center;margin-top:10px}
+    .bmi-gauge svg{width:220px;max-width:100%;height:auto;display:block}
+    .bmi-meta{flex:1;min-width:160px}
+    .muted{color:#666}
+
+    label{display:block;margin-top:12px;color:#2c7a3a;font-weight:700;font-size:0.95rem}
+    input[type="number"], input[type="range"]{width:100%}
+    input[type="number"]{padding:10px;margin-top:6px;border:1px solid #cfeadf;border-radius:6px}
+    input[type="range"]{margin-top:10px}
+
+    .row{display:flex;gap:12px;align-items:center;margin-top:10px}
+    .row > div{flex:1}
+
+    .btn{background:#2ecc71;color:#fff;padding:10px 14px;border-radius:8px;border:none;margin-top:14px;cursor:pointer}
+    .btn:disabled{background:#95a5a6;cursor:not-allowed}
+
+    .bar{margin-top:10px;height:12px;border-radius:999px;background:#e6f7ea;overflow:hidden}
+    .bar > div{height:100%;background:#2ecc71;width:0%}
+    .bar-labels{display:flex;justify-content:space-between;gap:10px;margin-top:8px;color:#2c7a3a;font-size:0.92rem}
+    .bar-labels strong{color:#13320f}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">AI Fitness Tracker</div>
+      <a class="back-btn" href="/">← Back</a>
+    </header>
+
+    <h1>Dashboard</h1>
+    <p>Quick overview of your training today.</p>
+
+    <div id="authMsg" class="note">Loading…</div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Calories Burned Today</h2>
+        <div class="big big-cal" id="todayCalories">0</div>
+        <div class="label">Sum of today’s sessions</div>
+        <div class="note" id="todayCaloriesNote"></div>
+      </div>
+
+      <div class="card">
+        <h2>BMI</h2>
+        <div class="bmi-gauge">
+          <svg viewBox="0 0 240 140" aria-label="BMI gauge">
+            <!-- Arc path is a half-circle from left (180deg) to right (0deg) -->
+            <path id="bmiArcBg" d="M 30 120 A 90 90 0 0 1 210 120" fill="none" stroke="#e6f7ea" stroke-width="16" stroke-linecap="round"></path>
+            <path id="bmiArcFg" d="M 30 120 A 90 90 0 0 1 210 120" fill="none" stroke="#2ecc71" stroke-width="16" stroke-linecap="round" stroke-dasharray="0 999"></path>
+            <circle id="bmiDot" cx="30" cy="120" r="8" fill="#2ecc71"></circle>
+          </svg>
+          <div class="bmi-meta">
+            <div class="big" id="bmiValue">—</div>
+            <div class="label" id="bmiLabel">Use sliders to calculate</div>
+            <div class="muted" style="margin-top:8px">Scale shown from BMI 12 → 40.</div>
+          </div>
+        </div>
+
+        <label>Height (cm) <span id="heightVal" style="color:#13320f;font-weight:800"></span></label>
+        <input id="heightSlider" type="range" min="120" max="220" step="1" value="170" />
+
+        <label>Weight (kg) <span id="weightVal" style="color:#13320f;font-weight:800"></span></label>
+        <input id="weightSlider" type="range" min="35" max="200" step="1" value="70" />
+
+        <div class="note">BMI is a simple estimate and not medical advice.</div>
+      </div>
+
+      <div class="card">
+        <h2>Weight Goal</h2>
+        <div class="big"><span id="goalPct">0</span>%</div>
+        <div class="label" id="goalLabel">Completion toward your goal</div>
+
+        <div class="row">
+          <div>
+            <label>Start Weight (kg)</label>
+            <input id="startWeight" type="number" min="20" max="300" />
+          </div>
+          <div>
+            <label>Goal Weight (kg)</label>
+            <input id="goalWeight" type="number" min="20" max="300" />
+          </div>
+        </div>
+
+        <div class="note">Current weight comes from your profile (or the BMI slider).</div>
+        <div class="bar" aria-label="Weight goal progress"><div id="goalBar"></div></div>
+        <div class="bar-labels">
+          <div>Start: <strong><span id="goalStart">—</span></strong> kg</div>
+          <div>Current: <strong><span id="goalCurrent">—</span></strong> kg</div>
+          <div>Goal: <strong><span id="goalTarget">—</span></strong> kg</div>
+        </div>
+
+        <button id="saveGoalBtn" class="btn">Save Goal</button>
+        <div class="note" id="goalMsg"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import firebaseApp from '/static/firebase-init.js';
+    import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js';
+    import { loadProfile, saveProfile } from '/static/firebase-profile.js';
+    import { loadSessions } from '/static/firebase-sessions.js';
+
+    const auth = getAuth(firebaseApp);
+
+    const authMsg = document.getElementById('authMsg');
+    const todayCaloriesEl = document.getElementById('todayCalories');
+    const todayCaloriesNote = document.getElementById('todayCaloriesNote');
+
+    const heightSlider = document.getElementById('heightSlider');
+    const weightSlider = document.getElementById('weightSlider');
+    const heightVal = document.getElementById('heightVal');
+    const weightVal = document.getElementById('weightVal');
+    const bmiValue = document.getElementById('bmiValue');
+    const bmiLabel = document.getElementById('bmiLabel');
+    const bmiArcFg = document.getElementById('bmiArcFg');
+    const bmiDot = document.getElementById('bmiDot');
+
+    const startWeightInput = document.getElementById('startWeight');
+    const goalWeightInput = document.getElementById('goalWeight');
+    const goalPct = document.getElementById('goalPct');
+    const goalBar = document.getElementById('goalBar');
+    const goalStart = document.getElementById('goalStart');
+    const goalCurrent = document.getElementById('goalCurrent');
+    const goalTarget = document.getElementById('goalTarget');
+    const goalLabel = document.getElementById('goalLabel');
+    const saveGoalBtn = document.getElementById('saveGoalBtn');
+    const goalMsg = document.getElementById('goalMsg');
+
+    function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
+
+    function fmt2(n){
+      const x = Number(n || 0);
+      return x.toFixed(2);
+    }
+
+    function fmt1(n){
+      const x = Number(n || 0);
+      return x.toFixed(1);
+    }
+
+    function hexToRgb(hex){
+      const h = String(hex || '').replace('#','');
+      if (h.length !== 6) return { r: 0, g: 0, b: 0 };
+      return {
+        r: parseInt(h.slice(0,2), 16),
+        g: parseInt(h.slice(2,4), 16),
+        b: parseInt(h.slice(4,6), 16),
+      };
+    }
+
+    function rgbToHex({r,g,b}){
+      const to2 = (n) => clamp(Math.round(n), 0, 255).toString(16).padStart(2,'0');
+      return `#${to2(r)}${to2(g)}${to2(b)}`;
+    }
+
+    function lerp(a,b,t){
+      return a + (b - a) * t;
+    }
+
+    function lerpHex(hexA, hexB, t){
+      const a = hexToRgb(hexA);
+      const b = hexToRgb(hexB);
+      return rgbToHex({
+        r: lerp(a.r, b.r, t),
+        g: lerp(a.g, b.g, t),
+        b: lerp(a.b, b.b, t),
+      });
+    }
+
+    function dateKey(d){
+      return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    }
+
+    function toDateMaybe(ts){
+      if (!ts) return null;
+      if (typeof ts.toDate === 'function') return ts.toDate();
+      // raw millis or Date
+      if (typeof ts === 'number') return new Date(ts);
+      if (ts instanceof Date) return ts;
+      return null;
+    }
+
+    function updateBMI(){
+      const hCm = Number(heightSlider.value);
+      const wKg = Number(weightSlider.value);
+      heightVal.textContent = hCm;
+      weightVal.textContent = wKg;
+      const hM = hCm / 100;
+      const bmi = hM > 0 ? (wKg / (hM*hM)) : 0;
+      bmiValue.textContent = bmi ? fmt2(bmi) : '—';
+
+      let label = '';
+      if (!bmi) label = 'Use sliders to calculate';
+      else if (bmi < 18.5) label = 'Underweight';
+      else if (bmi < 25) label = 'Normal';
+      else if (bmi < 30) label = 'Overweight';
+      else label = 'Obese';
+      bmiLabel.textContent = label;
+
+      // Update arc gauge (BMI 12 → 40 mapped to 0% → 100%)
+      const minBmi = 12;
+      const maxBmi = 40;
+      const clamped = clamp(bmi || minBmi, minBmi, maxBmi);
+      const t = (clamped - minBmi) / (maxBmi - minBmi); // 0..1
+
+      // Color: green when in ideal range, trending to red as it moves away
+      const idealMin = 18.5;
+      const idealMax = 24.9;
+      let dist = 0;
+      if (bmi && bmi < idealMin) dist = idealMin - bmi;
+      else if (bmi && bmi > idealMax) dist = bmi - idealMax;
+      // Normalize distance to 0..1 (cap at ~15 BMI points away)
+      const distT = clamp(dist / 15, 0, 1);
+      const gaugeColor = lerpHex('#2ecc71', '#c23a2b', distT);
+      bmiArcFg.style.stroke = gaugeColor;
+      bmiDot.setAttribute('fill', gaugeColor);
+
+      // Arc geometry: path length for the half-circle isn't constant across browsers,
+      // but SVG getTotalLength() is reliable.
+      const arcLen = bmiArcFg.getTotalLength();
+      bmiArcFg.style.strokeDasharray = `${Math.max(0, Math.round(arcLen * t))} ${Math.round(arcLen)}`;
+
+      // Dot position on half-circle: angle from 180deg (left) to 0deg (right)
+      const angle = Math.PI * (1 - t);
+      const cx = 120;
+      const cy = 120;
+      const r = 90;
+      const x = cx + r * Math.cos(angle);
+      const y = cy - r * Math.sin(angle);
+      bmiDot.setAttribute('cx', String(x));
+      bmiDot.setAttribute('cy', String(y));
+
+      // If goal UI is empty, prefer current slider weight as current weight context
+      updateGoalProgress();
+    }
+
+    function updateGoalProgress(profileWeight){
+      const current = Number(profileWeight ?? weightSlider.value ?? 0);
+      const start = Number(startWeightInput.value || 0);
+      const goal = Number(goalWeightInput.value || 0);
+
+      goalStart.textContent = start ? fmt1(start) : '—';
+      goalCurrent.textContent = current ? fmt1(current) : '—';
+      goalTarget.textContent = goal ? fmt1(goal) : '—';
+
+      // If not set, show 0%
+      if (!start || !goal || !current || start === goal){
+        goalPct.textContent = '0';
+        goalBar.style.width = '0%';
+        goalLabel.textContent = 'Set a start and goal weight to see progress.';
+        return;
+      }
+
+      // Handles both lose-weight and gain-weight goals
+      const total = Math.abs(start - goal);
+      const done = Math.abs(start - current);
+      const pct = clamp(Math.round((done / total) * 100), 0, 100);
+
+      goalPct.textContent = String(pct);
+      goalBar.style.width = pct + '%';
+
+      if (start > goal) {
+        goalLabel.textContent = `Losing weight goal: ${fmt1(current)} kg now.`;
+      } else {
+        goalLabel.textContent = `Gaining weight goal: ${fmt1(current)} kg now.`;
+      }
+    }
+
+    heightSlider.addEventListener('input', updateBMI);
+    weightSlider.addEventListener('input', updateBMI);
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        authMsg.innerHTML = 'Please <a href="/login">login</a> to view your dashboard.';
+        return;
+      }
+
+      authMsg.textContent = '';
+
+      // Load profile for initial values
+      let profile = null;
+      try {
+        profile = await loadProfile();
+      } catch (err) {
+        console.error('Profile load error', err);
+      }
+
+      const profileHeight = profile?.height;
+      const profileWeight = profile?.weight;
+
+      if (profileHeight) heightSlider.value = String(clamp(Number(profileHeight), 120, 220));
+      if (profileWeight) weightSlider.value = String(clamp(Number(profileWeight), 35, 200));
+
+      // Goal defaults
+      if (profile?.startWeightKg) startWeightInput.value = profile.startWeightKg;
+      else if (profileWeight) startWeightInput.value = profileWeight;
+
+      if (profile?.goalWeightKg) goalWeightInput.value = profile.goalWeightKg;
+
+      updateBMI();
+      updateGoalProgress(profileWeight);
+
+      // Load sessions and sum today's calories
+      try {
+        const sessions = await loadSessions({ max: 200 });
+        const today = new Date();
+        const todayK = dateKey(today);
+
+        let sum = 0;
+        let count = 0;
+        sessions.forEach((s) => {
+          const d = toDateMaybe(s.endedAt) || toDateMaybe(s.startedAt) || toDateMaybe(s.createdAt);
+          if (!d) return;
+          if (dateKey(d) !== todayK) return;
+          sum += Number(s.calories || 0);
+          count += 1;
+        });
+
+        todayCaloriesEl.textContent = fmt2(sum);
+        todayCaloriesNote.textContent = count ? `From ${count} session(s) today.` : 'No sessions today yet.';
+      } catch (err) {
+        console.error('Sessions load error', err);
+        todayCaloriesEl.textContent = '0';
+        todayCaloriesNote.textContent = 'Could not load sessions.';
+      }
+
+      saveGoalBtn.addEventListener('click', async () => {
+        goalMsg.textContent = '';
+        const start = Number(startWeightInput.value || 0);
+        const goal = Number(goalWeightInput.value || 0);
+        if (!start || !goal) {
+          goalMsg.textContent = 'Enter start and goal weight first.';
+          return;
+        }
+
+        saveGoalBtn.disabled = true;
+        try {
+          await saveProfile({ startWeightKg: start, goalWeightKg: goal });
+          goalMsg.textContent = 'Saved!';
+          setTimeout(() => goalMsg.textContent = '', 1400);
+        } catch (err) {
+          console.error(err);
+          goalMsg.textContent = 'Save failed: ' + (err.message || err);
+        } finally {
+          saveGoalBtn.disabled = false;
+        }
+        updateGoalProgress(profileWeight);
+      });
+
+      // Update progress when inputs change
+      startWeightInput.addEventListener('input', () => updateGoalProgress(profileWeight));
+      goalWeightInput.addEventListener('input', () => updateGoalProgress(profileWeight));
+    });
+  </script>
+</body>
+</html>

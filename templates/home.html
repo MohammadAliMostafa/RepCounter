@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Home - AI Fitness Tracker</title>
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;background:#fff;margin:0;padding:0}
+    .wrap{max-width:1100px;margin:40px auto;padding:24px}
+    header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+    .brand{font-size:1.4rem;font-weight:700;color:#2c7a3a}
+    .nav a{margin-left:12px;color:#2c7a3a;text-decoration:none}
+    .auth .user-row{display:flex;align-items:center;gap:10px}
+    .auth .user-email{font-size:0.9rem;color:#13320f}
+    .auth .btn{padding:8px 10px}
+    .auth img{width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid #2ecc71}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+    .card{background:#f6fff5;border:2px solid #e6f7ea;border-radius:12px;min-height:260px;display:flex;align-items:center;justify-content:center;flex-direction:column;cursor:pointer;text-decoration:none;color:#13320f}
+    .card h2{font-size:1.4rem;margin-bottom:8px}
+    .card p{color:#2c7a3a}
+    .auth{display:flex;align-items:center;gap:12px}
+    .btn{background:#2ecc71;color:#fff;padding:10px 14px;border-radius:8px;text-decoration:none}
+    .btn.secondary{background:#95a5a6}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">AI Fitness Tracker</div>
+      <div class="auth">
+        <div data-auth="signed-in" style="display:none;">
+          <div class="user-row">
+            <a class="btn secondary" id="adminBtn" href="/admin" style="display:none">Admin</a>
+            <a id="profileLink" href="/profile" title="Open profile">
+              <img id="profilePic" src="/static/default-avatar.svg" alt="profile" style="display:none;cursor:pointer" />
+            </a>
+            <div class="user-email">Signed in as <strong id="userEmail">user</strong></div>
+            <a class="btn" id="signOutBtn" href="#">Logout</a>
+          </div>
+        </div>
+        <div data-auth="signed-out" style="display:none"><a class="btn" href="/login">Login</a> <a class="btn" href="/signup">Sign up</a></div>
+      </div>
+    </header>
+
+    <h1 style="color:#13320f">Welcome</h1>
+    <p style="color:#2c7a3a">Choose an app to open</p>
+
+    <div class="grid">
+      <a class="card" href="/tracker">
+        <h2>Live Rep Counter</h2>
+        <p>Open the real-time rep counter and calorie tracker.</p>
+      </a>
+
+      <a class="card" href="/placeholder">
+        <h2>Training History</h2>
+        <p>View your past sessions (reps, calories, duration).</p>
+      </a>
+
+      <a class="card" href="/dashboard">
+        <h2>Dashboard</h2>
+        <p>See today’s calories, BMI, and weight goal progress.</p>
+      </a>
+
+      <a class="card" href="/tips">
+        <h2>Tips</h2>
+        <p>Read coach tips and training reminders.</p>
+      </a>
+    </div>
+  </div>
+</body>
+</html>
+<script type="module">
+  import { initAuthUI, doLogout } from '/static/firebase-auth.js';
+  import firebaseApp from '/static/firebase-init.js';
+  import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js';
+  import { loadProfile } from '/static/firebase-profile.js';
+  initAuthUI();
+
+  const adminBtn = document.getElementById('adminBtn');
+  const auth = getAuth(firebaseApp);
+  onAuthStateChanged(auth, async (user) => {
+    if (!adminBtn) return;
+    adminBtn.style.display = 'none';
+    if (!user) return;
+    try {
+      const profile = await loadProfile();
+      if (profile && profile.isAdmin === true) {
+        adminBtn.style.display = 'inline-block';
+      }
+    } catch (_) {
+      // keep hidden
+    }
+  });
+
+  const signOutBtn = document.getElementById('signOutBtn');
+  if (signOutBtn) {
+    signOutBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      await doLogout();
+      window.location.href = '/';
+    });
+  }
+</script>
+<script type="module" src="/static/firebase-init.js"></script>

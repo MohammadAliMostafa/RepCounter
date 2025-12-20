@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Fitness Tracker - Rep Counter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #fff;
+            margin: 0;
+        }
+
+        .wrap{max-width:1100px;margin:40px auto;padding:24px}
+        header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+        .brand{font-size:1.4rem;font-weight:700;color:#2c7a3a}
+        .back-btn{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;background:#f0fbf5;color:#1d5b2b;text-decoration:none;border:1px solid #d9f0df}
+        h1{color:#13320f;margin-top:6px}
+        .sub{color:#2c7a3a;margin-top:6px}
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .video-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        #videoCanvas {
+            width: 100%;
+            border-radius: 15px;
+            background: #000;
+            border: 2px solid #e6f7ea;
+        }
+
+        .controls-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .user-info {
+            background: #f6fff5;
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid #e6f7ea;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #2c7a3a;
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cfeadf;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #2ecc71;
+        }
+
+        .stats {
+            background: #f6fff5;
+            color: #13320f;
+            padding: 25px;
+            border-radius: 15px;
+            border: 2px solid #e6f7ea;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            color: #2c7a3a;
+        }
+
+        .buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        button {
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-start {
+            background: #2ecc71; /* primary green */
+            color: white;
+        }
+
+        .btn-start:hover {
+            background: #27ae60; /* darker green on hover */
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.25);
+        }
+
+        .btn-start:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-stop {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-stop:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(220, 53, 69, 0.3);
+        }
+
+        .btn-stop:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-reset {
+            background: #f0fbf5;
+            color: #1d5b2b;
+            border: 1px solid #d9f0df;
+        }
+
+        .btn-reset:hover {
+            background: #e0a800;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 193, 7, 0.3);
+        }
+
+        .status {
+            text-align: center;
+            padding: 15px;
+            background: #f6fff5;
+            border-radius: 8px;
+            color: #2c7a3a;
+            font-weight: bold;
+            margin-top: 15px;
+            border: 1px solid #e6f7ea;
+        }
+
+        .status.active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .exercise-badge {
+            display: inline-block;
+            background: #f0fbf5;
+            color: #1d5b2b;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin-top: 10px;
+            border: 1px solid #d9f0df;
+        }
+
+        .note{color:#666;margin-top:10px}
+        .note a{color:#2c7a3a;text-decoration:none}
+
+        #video {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <header>
+            <div class="brand">AI Fitness Tracker</div>
+            <a class="back-btn" href="/">← Back</a>
+        </header>
+
+        <h1>Live Rep Counter</h1>
+        <p class="sub">Real-time rep counting with calorie prediction</p>
+
+        <div class="content">
+            <!-- VIDEO FEED -->
+            <div class="video-section">
+                <video id="video" autoplay playsinline></video>
+                <canvas id="videoCanvas" width="640" height="480"></canvas>
+                <div class="status" id="status">Ready to start</div>
+            </div>
+
+            <!-- CONTROLS & STATS -->
+            <div class="controls-section">
+                <!-- USER INFO -->
+                <div class="user-info">
+                    <h3 style="margin-bottom: 10px; color: #13320f;">User Profile</h3>
+                    <div id="profileNotice" class="note">Loading your profile…</div>
+                    
+                    <div class="form-group">
+                        <label for="age">Age</label>
+                        <input type="number" id="age" min="10" max="120">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="weight">Weight (kg)</label>
+                        <input type="number" id="weight" min="20" max="300">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="gender">Gender</label>
+                        <select id="gender">
+                            <option value="1">Male</option>
+                            <option value="0">Female</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="exercise">Exercise Type</label>
+                        <select id="exercise">
+                            <option value="bicep_curl">Bicep Curl</option>
+                            <option value="lateral_raise">Lateral Raise</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- STATS -->
+                <div class="stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="reps">0</div>
+                        <div class="stat-label">Reps Completed</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="calories">0</div>
+                        <div class="stat-label">Calories Burned</div>
+                    </div>
+                </div>
+
+                <!-- BUTTONS -->
+                <div class="buttons">
+                    <button class="btn-start" id="startBtn" onclick="startTracking()">Start Tracking</button>
+                    <button class="btn-stop" id="stopBtn" onclick="stopTracking()" disabled>Stop Tracking</button>
+                </div>
+
+                <button class="btn-reset" onclick="resetCounter()" style="width: 100%;">Reset Counter</button>
+
+                <!-- Selected exercise badge removed per UI update -->
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import firebaseApp from '/static/firebase-init.js';
+        import { loadProfile } from '/static/firebase-profile.js';
+        import { logSession } from '/static/firebase-sessions.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js';
+
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('videoCanvas');
+        const ctx = canvas.getContext('2d');
+        const statusDiv = document.getElementById('status');
+        const profileNotice = document.getElementById('profileNotice');
+
+        let isTracking = false;
+        let sessionId = 'session_' + Date.now();
+        let latestCalories = 0;
+        let profileInputs = { age: null, weight: null, gender: null };
+        let currentUser = null;
+        let sessionStartMs = null;
+
+        function setInputsDisabled(disabled) {
+            ['age', 'weight', 'gender'].forEach((id) => {
+                const el = document.getElementById(id);
+                if (el) el.disabled = disabled;
+            });
+        }
+
+        // Load profile from Firestore (if signed in)
+        const auth = getAuth(firebaseApp);
+        onAuthStateChanged(auth, async (user) => {
+            currentUser = user;
+            setInputsDisabled(false);
+            if (!user) {
+                profileNotice.innerHTML = 'Not signed in. Enter your details or <a href="/login">login</a> to use saved profile data.';
+                return;
+            }
+            try {
+                const p = await loadProfile();
+                if (p && (p.age || p.weight || typeof p.gender !== 'undefined')) {
+                    if (p.age) document.getElementById('age').value = p.age;
+                    if (p.weight) document.getElementById('weight').value = p.weight;
+                    if (typeof p.gender !== 'undefined' && p.gender !== null) document.getElementById('gender').value = String(p.gender);
+
+                    profileInputs.age = p.age ?? null;
+                    profileInputs.weight = p.weight ?? null;
+                    profileInputs.gender = (typeof p.gender !== 'undefined') ? p.gender : null;
+                    setInputsDisabled(true);
+                    profileNotice.innerHTML = 'Using your saved profile data. <a href="/profile">Edit profile</a>';
+                } else {
+                    profileNotice.innerHTML = 'Profile is missing age/weight/gender. <a href="/profile">Complete your profile</a> (or enter values here).';
+                }
+            } catch (err) {
+                console.error('Profile load error', err);
+                profileNotice.innerHTML = 'Could not load profile. You can enter values here or try again.';
+            }
+        });
+
+        // Request webcam access
+        async function startTracking() {
+            try {
+                sessionId = 'session_' + Date.now();
+                sessionStartMs = Date.now();
+
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'user' }
+                });
+                video.srcObject = stream;
+                isTracking = true;
+
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = false;
+                statusDiv.textContent = '🟢 Tracking active...';
+                statusDiv.className = 'status active';
+
+                // Hide live calories while tracking; show final value after stop
+                document.getElementById('calories').textContent = '—';
+
+                // Exercise selection is handled by the select; visual badge removed
+
+                processFrames();
+            } catch (error) {
+                statusDiv.textContent = '❌ Webcam access denied';
+                statusDiv.className = 'status error';
+                console.error('Error accessing webcam:', error);
+            }
+        }
+
+        function stopTracking() {
+            isTracking = false;
+            const stream = video.srcObject;
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            // Clear video source
+            try { video.srcObject = null; } catch(e){}
+
+            // Disable/enable buttons
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            statusDiv.textContent = '⏹️ Tracking stopped';
+            statusDiv.className = 'status';
+
+            // Show final calories prediction when tracking stops
+            document.getElementById('calories').textContent = latestCalories;
+
+            // Log session to Firestore (signed-in users only)
+            try {
+                const reps = Number(document.getElementById('reps').textContent || 0);
+                const exercise = document.getElementById('exercise').value;
+                const endedAtMs = Date.now();
+                const durationSec = sessionStartMs ? Math.max(0, Math.round((endedAtMs - sessionStartMs) / 1000)) : 0;
+
+                if (currentUser) {
+                    // Fire-and-forget; no UI change required
+                    logSession({
+                        exercise,
+                        reps,
+                        calories: Number(latestCalories || 0),
+                        durationSec,
+                        startedAtMs: sessionStartMs,
+                        endedAtMs,
+                    }).catch((err) => console.error('Failed to log session', err));
+                }
+            } catch (err) {
+                console.error('Session log error', err);
+            }
+
+            // Stop any processing flag and paint canvas black (mirror-safe)
+            isProcessing = false;
+            try {
+                // reset any transforms then fill black
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            } catch (err) {
+                console.error('Error painting black canvas', err);
+            }
+        }
+
+        let isProcessing = false;
+
+        async function processFrames() {
+            if (!isTracking) {
+                requestAnimationFrame(processFrames);
+                return;
+            }
+
+            // Draw current video frame on canvas (selfie mirror)
+            ctx.save();
+            ctx.translate(canvas.width, 0);
+            ctx.scale(-1, 1);
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            ctx.restore();
+
+            // Process frame only if previous request finished
+            if (!isProcessing) {
+                isProcessing = true;
+
+                // Get frame as base64 (reduced quality for faster transmission)
+                const imageData = canvas.toDataURL('image/jpeg', 0.8);
+
+                try {
+                    const ageVal = document.getElementById('age').value;
+                    const weightVal = document.getElementById('weight').value;
+                    const genderVal = document.getElementById('gender').value;
+
+                    const response = await fetch('/api/process_frame', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            image: imageData,
+                            // Model inputs come from user profile (or manual fallback if missing)
+                            age: (profileInputs.age ?? ageVal),
+                            weight: (profileInputs.weight ?? weightVal),
+                            gender: (profileInputs.gender ?? genderVal),
+                            exercise: document.getElementById('exercise').value,
+                            session_id: sessionId
+                        })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.success) {
+                            // Update UI with response
+                            document.getElementById('reps').textContent = data.reps;
+                            // Save latest calories but don't display until tracking stops
+                            latestCalories = data.calories;
+
+                            // Draw processed frame with pose overlay
+                            const img = new Image();
+                            img.onload = function () {
+                                // If tracking has stopped, ignore late frames
+                                if (!isTracking) {
+                                    isProcessing = false;
+                                    return;
+                                }
+                                // Draw processed frame mirrored to match selfie preview
+                                ctx.save();
+                                ctx.translate(canvas.width, 0);
+                                ctx.scale(-1, 1);
+                                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                                ctx.restore();
+                                isProcessing = false;
+                            };
+                            img.src = data.image;
+                        }
+                    } else {
+                        console.error('Server error:', response.status);
+                        isProcessing = false;
+                    }
+                } catch (error) {
+                    console.error('Error processing frame:', error);
+                    isProcessing = false;
+                }
+            }
+
+            // Continue processing at ~30 FPS using requestAnimationFrame
+            requestAnimationFrame(processFrames);
+        }
+
+        async function resetCounter() {
+            try {
+                await fetch('/api/reset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_id: sessionId })
+                });
+
+                document.getElementById('reps').textContent = '0';
+                latestCalories = 0;
+                document.getElementById('calories').textContent = '0';
+                statusDiv.textContent = '🔄 Counter reset';
+            } catch (error) {
+                console.error('Error resetting counter:', error);
+            }
+        }
+
+        // keep existing inline handlers working
+        window.startTracking = startTracking;
+        window.stopTracking = stopTracking;
+        window.resetCounter = resetCounter;
+    </script>
+</body>
+</html>

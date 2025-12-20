@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Training History - AI Fitness Tracker</title>
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;background:#fff;margin:0}
+    .wrap{max-width:1100px;margin:40px auto;padding:24px}
+    header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+    .brand{font-size:1.4rem;font-weight:700;color:#2c7a3a}
+    .back-btn{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;background:#f0fbf5;color:#1d5b2b;text-decoration:none;border:1px solid #d9f0df}
+    h1{color:#13320f;margin-top:6px}
+    p{color:#2c7a3a}
+    .panel{margin-top:16px;background:#f6fff5;border:2px solid #e6f7ea;border-radius:12px;padding:16px}
+    .note{color:#666;margin-top:10px}
+    table{width:100%;border-collapse:collapse}
+    th,td{text-align:left;padding:10px;border-bottom:1px solid #e6f7ea;color:#13320f}
+    th{color:#2c7a3a;font-size:0.95rem}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">AI Fitness Tracker</div>
+      <a class="back-btn" href="/">← Back</a>
+    </header>
+
+    <h1>Training History</h1>
+    <p>Your past sessions (reps, calories, exercise, duration).</p>
+
+    <div class="panel">
+      <div id="authMsg" class="note">Loading…</div>
+      <div id="tableWrap" style="display:none">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Exercise</th>
+              <th>Reps</th>
+              <th>Calories</th>
+              <th>Duration</th>
+            </tr>
+          </thead>
+          <tbody id="sessionsBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import firebaseApp from '/static/firebase-init.js';
+    import { loadSessions } from '/static/firebase-sessions.js';
+    import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js';
+
+    const auth = getAuth(firebaseApp);
+    const authMsg = document.getElementById('authMsg');
+    const tableWrap = document.getElementById('tableWrap');
+    const sessionsBody = document.getElementById('sessionsBody');
+
+    function fmtDate(ts) {
+      if (!ts) return '';
+      const d = typeof ts.toDate === 'function' ? ts.toDate() : new Date(ts);
+      return d.toLocaleString();
+    }
+
+    function fmtDuration(sec) {
+      const s = Number(sec || 0);
+      const m = Math.floor(s / 60);
+      const r = s % 60;
+      return m ? `${m}m ${r}s` : `${r}s`;
+    }
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        authMsg.innerHTML = 'Please <a href="/login" style="color:#2c7a3a;text-decoration:none">login</a> to view your training history.';
+        tableWrap.style.display = 'none';
+        return;
+      }
+
+      authMsg.textContent = 'Loading your sessions…';
+      try {
+        const sessions = await loadSessions({ max: 50 });
+        sessionsBody.innerHTML = '';
+        if (!sessions.length) {
+          authMsg.textContent = 'No sessions yet. Start a workout from the Live Rep Counter.';
+          tableWrap.style.display = 'none';
+          return;
+        }
+
+        authMsg.textContent = '';
+        tableWrap.style.display = 'block';
+        sessions.forEach((s) => {
+          const tr = document.createElement('tr');
+          const dateVal = s.endedAt || s.startedAt || s.createdAt;
+          tr.innerHTML = `
+            <td>${fmtDate(dateVal)}</td>
+            <td>${s.exercise || ''}</td>
+            <td>${Number(s.reps || 0)}</td>
+            <td>${Number(s.calories || 0).toFixed(2)}</td>
+            <td>${fmtDuration(s.durationSec)}</td>
+          `;
+          sessionsBody.appendChild(tr);
+        });
+      } catch (err) {
+        console.error(err);
+        const msg = (err && (err.code || err.message))
+          ? `${err.code ? err.code + ': ' : ''}${err.message || ''}`
+          : String(err);
+        authMsg.textContent = 'Failed to load sessions. ' + msg;
+        tableWrap.style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>

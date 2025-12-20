@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login - AI Fitness Tracker</title>
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;background:#fff;margin:0}
+    .box{max-width:420px;margin:80px auto;padding:24px;border-radius:10px;border:1px solid #e6f7ea}
+    h1{color:#13320f}
+    label{display:block;margin-top:12px;color:#2c7a3a}
+    input{width:100%;padding:10px;margin-top:6px;border:1px solid #cfeadf;border-radius:6px}
+    .btn{background:#2ecc71;color:#fff;padding:10px 14px;border-radius:8px;border:none;margin-top:18px;cursor:pointer}
+    .err{color:#c23a2b;margin-top:10px}
+    a{color:#2c7a3a}
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>Login</h1>
+    {% if error %}<div class="err">{{ error }}</div>{% endif %}
+    <form id="loginForm">
+      <label>Email<input id="email" name="email" type="email" required></label>
+      <label>Password<input id="password" type="password" name="password" required></label>
+      <button class="btn" type="submit">Login</button>
+    </form>
+    <p style="margin-top:12px">Don't have an account? <a href="/signup">Sign up</a></p>
+    <script type="module">
+      import { initAuthUI, doLogin } from '/static/firebase-auth.js';
+      initAuthUI();
+      const form = document.getElementById('loginForm');
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const res = await doLogin(document.getElementById('email').value, document.getElementById('password').value);
+        if (res.success) {
+          window.location.href = '/';
+        } else {
+          alert('Login failed: ' + res.error);
+        }
+      });
+    </script>
+  </div>
+</body>
+</html>

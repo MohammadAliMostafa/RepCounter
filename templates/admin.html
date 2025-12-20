@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin - AI Fitness Tracker</title>
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;background:#fff;margin:0}
+    .wrap{max-width:1100px;margin:40px auto;padding:24px}
+    header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+    .brand{font-size:1.4rem;font-weight:700;color:#2c7a3a}
+    .back-btn{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;background:#f0fbf5;color:#1d5b2b;text-decoration:none;border:1px solid #d9f0df}
+
+    h1{color:#13320f;margin-top:6px}
+    .note{color:#666;margin-top:8px}
+    .note a{color:#2c7a3a;text-decoration:none}
+
+    .card{background:#f6fff5;border:2px solid #e6f7ea;border-radius:12px;padding:16px;margin-top:16px}
+    .card h2{margin:0 0 10px;color:#13320f;font-size:1.1rem}
+
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px;border-bottom:1px solid #e6f7ea;text-align:left;vertical-align:middle}
+    th{color:#2c7a3a;font-weight:800}
+
+    .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#e6f7ea;color:#1d5b2b;font-size:0.85rem}
+    .pill.danger{background:#fdecea;color:#c23a2b}
+
+    .btn{background:#2ecc71;color:#fff;padding:8px 12px;border-radius:8px;border:none;cursor:pointer}
+    .btn.gray{background:#95a5a6}
+    .btn.red{background:#e74c3c}
+    .btn:disabled{background:#bdc3c7;cursor:not-allowed}
+
+    .actions{display:flex;gap:8px;flex-wrap:wrap}
+    input[type="text"]{padding:8px;border:1px solid #cfeadf;border-radius:8px;width:100%;max-width:420px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">AI Fitness Tracker</div>
+      <a class="back-btn" href="/">← Back</a>
+    </header>
+
+    <h1>Admin</h1>
+    <div id="status" class="note">Checking access…</div>
+
+    <div id="adminUI" style="display:none">
+      <div class="card">
+        <h2>Users</h2>
+        <div class="note"></div>
+        <div style="margin-top:12px">
+          <input id="filter" type="text" placeholder="Filter by name or UID" />
+        </div>
+        <div style="overflow:auto;margin-top:12px">
+          <table>
+            <thead>
+              <tr>
+                <th>Display Name</th>
+                <th>UID</th>
+                <th>Admin</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="usersBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Tips</h2>
+        <div class="note">Add training tips/comments for all users. For images, paste a direct image link (URL).</div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+          <div>
+            <div style="color:#2c7a3a;font-weight:800;margin-bottom:6px">Title</div>
+            <input id="tipTitle" type="text" placeholder="e.g., Warm-up reminder" />
+          </div>
+          <div>
+            <div style="color:#2c7a3a;font-weight:800;margin-bottom:6px">Image URL (optional)</div>
+            <input id="tipImageUrl" type="text" placeholder="https://.../image.jpg" />
+          </div>
+        </div>
+
+        <div style="margin-top:12px">
+          <div style="color:#2c7a3a;font-weight:800;margin-bottom:6px">Tip text</div>
+          <textarea id="tipText" rows="4" style="width:100%;padding:10px;border:1px solid #cfeadf;border-radius:8px" placeholder="Write the tip here..."></textarea>
+        </div>
+
+        <div style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <button id="addTipBtn" class="btn">Add Tip</button>
+          <div id="tipsMsg" class="note" style="margin-top:0"></div>
+        </div>
+
+        <div style="overflow:auto;margin-top:12px">
+          <table>
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Has Image</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tipsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/static/firebase-admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Profile - AI Fitness Tracker</title>
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;background:#fff;margin:0}
+    .wrap{max-width:720px;margin:40px auto;padding:20px}
+    h1{color:#13320f}
+    label{display:block;margin-top:12px;color:#2c7a3a}
+    input,select{width:100%;padding:10px;margin-top:6px;border:1px solid #cfeadf;border-radius:6px}
+    .btn{background:#2ecc71;color:#fff;padding:10px 14px;border-radius:8px;border:none;margin-top:18px;cursor:pointer}
+    .note{color:#666;margin-top:10px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <a class="back-btn" href="/" style="display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;background:#f0fbf5;color:#1d5b2b;text-decoration:none;border:1px solid #d9f0df">← Back</a>
+    </div>
+    <h1>Your Profile</h1>
+
+    <div id="avatarWrap" style="margin-top:12px;display:none;align-items:center;gap:12px">
+      <img id="profileAvatar" src="/static/default-avatar.svg" alt="Avatar" style="width:80px;height:80px;border-radius:12px;object-fit:cover;border:2px solid #e6f7ea;display:none" />
+      <div>
+        <div id="profileName" style="font-size:1.1rem;color:#13320f;margin-bottom:6px"></div>
+        <div class="note" id="profileSub">Profile details below</div>
+      </div>
+    </div>
+    <div id="authNotice" style="color:#c23a2b;display:none">Please sign in first.</div>
+
+    <div id="profileForm" style="display:none">
+      <label>Display Name
+        <input id="displayName" type="text" placeholder="Your name">
+      </label>
+
+      <label>Age
+        <input id="age" type="number" min="10" max="120">
+      </label>
+
+      <label>Weight (kg)
+        <input id="weight" type="number" min="20" max="300">
+      </label>
+
+      <label>Height (cm)
+        <input id="height" type="number" min="80" max="250">
+      </label>
+
+      <label>Gender
+        <select id="gender">
+          <option value="1">Male</option>
+          <option value="0">Female</option>
+        </select>
+      </label>
+
+      <button id="saveBtn" class="btn">Save Profile</button>
+
+      <h2 style="margin-top:20px">Change Password</h2>
+      <label>Current password
+        <input id="currentPassword" type="password">
+      </label>
+      <label>New password
+        <input id="newPassword" type="password">
+      </label>
+      <button id="changePwdBtn" class="btn">Change Password</button>
+      <div id="msg" class="note"></div>
+      <div style="margin-top:14px">
+        <button id="deleteBtn" class="btn" style="background:#e74c3c">Delete Profile</button>
+      </div>
+    </div>
+
+    
+  </div>
+
+  <script type="module">
+    import { initAuthUI, doLogout } from '/static/firebase-auth.js';
+    import { loadProfile, saveProfile, changePassword, deleteProfile } from '/static/firebase-profile.js';
+    initAuthUI();
+
+    const profileForm = document.getElementById('profileForm');
+    const authNotice = document.getElementById('authNotice');
+    const msg = document.getElementById('msg');
+
+    function showAuthRequired() {
+      authNotice.style.display = 'block';
+      profileForm.style.display = 'none';
+    }
+
+    function showForm() {
+      authNotice.style.display = 'none';
+      profileForm.style.display = 'block';
+    }
+
+    // Wait for Firebase auth state and then load profile
+    (async () => {
+      const { getAuth, onAuthStateChanged } = await import('https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js');
+      const auth = getAuth();
+      onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+          showAuthRequired();
+          return;
+        }
+        showForm();
+        // load profile for signed-in user and populate avatar + name
+        try {
+          const p = await loadProfile();
+          const avatarWrap = document.getElementById('avatarWrap');
+          const avatarImg = document.getElementById('profileAvatar');
+          const nameEl = document.getElementById('profileName');
+          if (p) {
+            document.getElementById('displayName').value = p.displayName || '';
+            document.getElementById('age').value = p.age || '';
+            document.getElementById('weight').value = p.weight || '';
+            document.getElementById('height').value = p.height || '';
+            document.getElementById('gender').value = typeof p.gender !== 'undefined' ? p.gender : '1';
+            // show avatar and name
+            if (avatarImg) {
+              avatarImg.src = p.avatarUrl || '/static/default-avatar.svg';
+              avatarImg.style.display = 'inline-block';
+            }
+            if (nameEl) {
+              nameEl.textContent = p.displayName || user.email || 'You';
+            }
+            if (avatarWrap) avatarWrap.style.display = 'flex';
+          } else {
+            // no profile document: show defaults
+            if (avatarImg) avatarImg.style.display = 'inline-block';
+            if (nameEl) nameEl.textContent = user.email || 'You';
+            if (avatarWrap) avatarWrap.style.display = 'flex';
+          }
+        } catch (err) {
+          console.error('Load profile error', err);
+        }
+      });
+    })();
+
+    document.getElementById('saveBtn').addEventListener('click', async () => {
+      const profile = {
+        displayName: document.getElementById('displayName').value,
+        age: Number(document.getElementById('age').value) || null,
+        weight: Number(document.getElementById('weight').value) || null,
+        height: Number(document.getElementById('height').value) || null,
+        gender: Number(document.getElementById('gender').value)
+      };
+      try {
+        await saveProfile(profile);
+        msg.textContent = 'Profile saved.';
+        // temporary saved feedback
+        const btn = document.getElementById('saveBtn');
+        const origText = btn.textContent;
+        const origBg = btn.style.background || '';
+        btn.textContent = 'Saved!';
+        btn.style.background = '#95a5a6';
+        btn.disabled = true;
+        setTimeout(() => {
+          btn.textContent = origText;
+          btn.style.background = origBg;
+          btn.disabled = false;
+        }, 1400);
+      } catch (err) {
+        msg.textContent = 'Save failed: ' + err.message;
+      }
+    });
+
+    document.getElementById('changePwdBtn').addEventListener('click', async () => {
+      const current = document.getElementById('currentPassword').value;
+      const nw = document.getElementById('newPassword').value;
+      msg.textContent = '';
+      try {
+        await changePassword(current, nw);
+        msg.textContent = 'Password changed successfully.';
+        // temporary saved feedback for change password
+        const btn = document.getElementById('changePwdBtn');
+        const origText = btn.textContent;
+        const origBg = btn.style.background || '';
+        btn.textContent = 'Saved!';
+        btn.style.background = '#95a5a6';
+        btn.disabled = true;
+        document.getElementById('currentPassword').value = '';
+        document.getElementById('newPassword').value = '';
+        setTimeout(() => {
+          btn.textContent = origText;
+          btn.style.background = origBg;
+          btn.disabled = false;
+        }, 1400);
+      } catch (err) {
+        msg.textContent = 'Password change failed: ' + err.message;
+      }
+    });
+
+    // Delete profile flow: confirmation modal
+    const confirmModalHtml = `
+      <div id="confirmModal" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;background:rgba(0,0,0,0.35);z-index:9999">
+        <div style="background:#fff;padding:18px;border-radius:10px;max-width:420px;width:90%">
+          <p style="font-weight:700;margin:0 0 8px">Delete profile?</p>
+          <p style="margin:0 0 12px;color:#555">This will permanently remove your profile data and your account. Please enter your current password to confirm.</p>
+          <label style="display:block;margin-top:8px;color:#333">Current password
+            <input id="confirmPassword" type="password" style="width:100%;padding:8px;margin-top:6px;border:1px solid #ddd;border-radius:6px" />
+          </label>
+          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
+            <button id="confirmCancel" class="btn" style="background:#bdc3c7">Cancel</button>
+            <button id="confirmYes" class="btn" style="background:#e74c3c">Delete</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', confirmModalHtml);
+
+    const deleteBtn = document.getElementById('deleteBtn');
+    const confirmModal = document.getElementById('confirmModal');
+    const confirmCancel = document.getElementById('confirmCancel');
+    const confirmYes = document.getElementById('confirmYes');
+
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        confirmModal.style.display = 'flex';
+      });
+    }
+    if (confirmCancel) {
+      confirmCancel.addEventListener('click', (e) => {
+        e.preventDefault();
+        confirmModal.style.display = 'none';
+      });
+    }
+    if (confirmYes) {
+      confirmYes.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const pwd = document.getElementById('confirmPassword').value || '';
+        if (!pwd) {
+          msg.textContent = 'Please enter your current password to confirm.';
+          return;
+        }
+        confirmYes.disabled = true;
+        try {
+          await deleteProfile(pwd);
+          msg.textContent = 'Profile and account deleted.';
+          // sign out and redirect home
+          try { await doLogout(); } catch(_) {}
+          window.location.href = '/';
+        } catch (err) {
+          msg.textContent = 'Delete failed: ' + (err.message || err);
+          confirmYes.disabled = false;
+          // keep modal open so user can retry or cancel
+        }
+      });
+    }
+  </script>
+</body>
+</html>
