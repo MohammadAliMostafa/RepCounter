@@ -1,11 +1,29 @@
 // firebase-auth.js
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  setPersistence,
+  browserLocalPersistence,
+} from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
 import firebaseApp from './firebase-init.js';
 import { saveProfile, loadProfile } from './firebase-profile.js';
 
 const auth = getAuth(firebaseApp);
 
 const DEFAULT_AVATAR = '/static/default-avatar.svg';
+
+let _persistencePromise = null;
+function ensurePersistence() {
+  if (_persistencePromise) return _persistencePromise;
+  _persistencePromise = setPersistence(auth, browserLocalPersistence).catch((err) => {
+    // If persistence can't be set (browser restrictions), keep working with default.
+    console.warn('Auth persistence not set:', err?.message || err);
+  });
+  return _persistencePromise;
+}
 
 export function initAuthUI() {
   onAuthStateChanged(auth, async (user) => {
@@ -48,7 +66,10 @@ export function initAuthUI() {
 
 export async function doSignup(email, password, username) {
   try {
+    await ensurePersistence();
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    // Force token fetch so auth state is fully established before redirect.
+    try { await userCredential.user.getIdToken(); } catch (_) {}
     // create default profile for new user
     const defaultProfile = {
       displayName: username || '',
@@ -73,7 +94,9 @@ export async function doSignup(email, password, username) {
 
 export async function doLogin(email, password) {
   try {
+    await ensurePersistence();
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    try { await userCredential.user.getIdToken(); } catch (_) {}
     return { success: true, user: userCredential.user };
   } catch (err) {
     return { success: false, error: err.message };
